@@ -5,76 +5,122 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
+import { cApi, dApi } from '@/api/axios';
+import { toast } from "sonner"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+
 
 export default function UserForm() {
   // Initialize form
   const form = useForm({
     defaultValues: {
-      profileImage: "",
+      profile_image: "",
       name: "",
       email: "",
-      phoneNumber: "",
+      phone_number: "",
       gender: "male",
       kyc: {
-        Aadhaar: "",
-        DLNumber: "",
+        aadhaar: "",
+        dl_number: "",
       },
+      password: "",
     },
   });
 
+  const navigate = useNavigate()
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageBytes, setImageBytes] = useState<Uint8Array | null>(null);
-
+  const [loading , setLoading] = useState(false);
+  const [isCustomer, setIsCustomer] = useState(true);
 
   // Handle Image Upload
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-  
+
     if (file) {
+      const maxSize = 100 * 1024; // 100 KB
+
+      if (file.size > maxSize) {
+        alert("Image size must be less than 100 KB");
+        return;
+      }
+
       const reader = new FileReader();
-  
+
       reader.onloadend = () => {
         if (reader.result) {
           const dataUrl = reader.result.toString();
-          const base64String = dataUrl.split(",")[1]; // Extract Base64
-          
-          setImagePreview(dataUrl); // Set preview
-          form.setValue("profileImage", base64String); // Set Base64 image in form state
+          const base64String = dataUrl.split(",")[1];
+
+          setImagePreview(dataUrl);
+          form.setValue("profile_image", base64String);
         }
       };
-  
-      reader.readAsDataURL(file); // Read file as DataURL
+
+      reader.readAsDataURL(file);
     }
   };
 
   // Form Submission
-  // Form Submission
-const onSubmit = async (data: any) => {
-    if (!data.profileImage) {
-      console.error("No image selected");
+  const onSubmit = async (data: any) => {
+    if (!data.password && !data.name && !data.email && !data.phone_number) {
+      console.error("No data selected");
       return;
     }
-    
-    // No need to convert again - data.profileImage is already a Base64 string
+
     const payload = {
       ...data,
-      profileImage: data.profileImage, // Already a Base64 string
+      profileImage: data.profileImage,
     };
     console.log(payload);
-    
-    // Your fetch code here...
+
+    try {
+      setLoading(true);
+      let res;
+      if(isCustomer) {
+        res = await cApi.post('/register', payload);
+      }else{
+        res = await dApi.post('/register', payload);
+      }
+      if(res){
+        toast("Registration Successful")
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error('API B error:', error);
+    } finally {
+      setLoading(false);
+    }
+
   };
-  
+
 
   return (
     <Card className="max-w-lg mx-auto mt-10 p-6 shadow-lg border">
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Profile Image Upload */}
+            
+            <RadioGroup
+              value={isCustomer ? "customer" : "driver"}
+              onValueChange={(val) => setIsCustomer(val === "customer")}
+              className="flex flex-row gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="customer" id="customer" />
+                <Label htmlFor="customer">Customer</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="driver" id="driver" />
+                <Label htmlFor="driver">Driver</Label>
+              </div>
+            </RadioGroup>
             <FormField
               control={form.control}
-              name="profileImage"
+              name="profile_image"
               render={() => (
                 <FormItem>
                   <FormLabel>Profile Image</FormLabel>
@@ -116,7 +162,7 @@ const onSubmit = async (data: any) => {
             {/* Phone Number */}
             <FormField
               control={form.control}
-              name="phoneNumber"
+              name="phone_number"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
@@ -149,9 +195,9 @@ const onSubmit = async (data: any) => {
             />
 
             {/* KYC Document Type */}
-            <FormField
+           {!isCustomer && <FormField
               control={form.control}
-              name="kyc.Aadhaar"
+              name="kyc.aadhaar"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Aadhaar</FormLabel>
@@ -159,12 +205,11 @@ const onSubmit = async (data: any) => {
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            />}
 
-            {/* KYC Document Number */}
-            <FormField
+            {!isCustomer && <FormField
               control={form.control}
-              name="kyc.DLNumber"
+              name="kyc.dl_number"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>DL Number</FormLabel>
@@ -172,10 +217,30 @@ const onSubmit = async (data: any) => {
                   <FormMessage />
                 </FormItem>
               )}
+            />}
+            <FormField
+              disabled={loading}
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="Enter your password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             {/* Submit Button */}
             <Button type="submit" className="w-full">Submit</Button>
+            <p
+              onClick={() => navigate("/login")}
+              className="text-blue-600 hover:underline cursor-pointer text-center"
+            >
+              Already have an account?
+            </p>
           </form>
         </Form>
       </CardContent>
