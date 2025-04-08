@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  frontend:
+    image: rohan36/nammuru-frontend:latest
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend1
+      - backend2
+
+  backend1:
+    image: rohan36/nammuru-customer-backend:latest
+    ports:
+      - "8010:8010"
+
+  backend2:
+    image: rohan36/nammuru-driver-backend:latest
+    ports:
+      - "8020:8020"
+
