@@ -1,4 +1,4 @@
-import { dApi } from "@/api/axios";
+import { cApi, dApi } from "@/api/axios";
 import { Button } from "@/components/ui/button"
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +11,7 @@ const HomePage = () => {
   const logout = async () => {
     try {
       setLoading(true);
-      const res = await dApi.post('/logout');
+      const res = await cApi.post('/logout');
       if(res){
         localStorage.removeItem("token");
         toast("Logout Successful")
